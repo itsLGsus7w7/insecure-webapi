@@ -1,3 +1,4 @@
+import os
 import json
 import random
 import hashlib
@@ -19,16 +20,7 @@ def loadDatabaseSettings(pathjs):
 
 
 def getToken():
-    tiempo = datetime.now().timestamp()
-    numero = random.random()
-    cadena = str(tiempo) + str(numero)
-    m = hashlib.sha1()
-    m.update(cadena.encode())
-    P = m.hexdigest()
-    m = hashlib.md5()
-    m.update(cadena.encode())
-    Q = m.hexdigest()
-    return f"{P[:20]}{Q[20:]}"
+	return os.urandom(32).hex()
 
 
 @post('/Registro')
@@ -47,11 +39,12 @@ def Registro():
         return {"R": -1}
 
     R = False
+    pwd_hash = hashlib.sha256(request.json["password"].encode()).hexdigest()
     try:
         with db.cursor() as cursor:
             cursor.execute(
-                'insert into Usuario values(null,%s,%s,md5(%s))',
-                (request.json["uname"], request.json["email"], request.json["password"])
+                'insert into Usuario values(null,%s,%s,%s)',
+                (request.json["uname"], request.json["email"], pwd_hash)
             )
             R = cursor.lastrowid
             db.commit()
@@ -78,11 +71,12 @@ def Login():
         return {"R": -1}
 
     R = False
+    pwd_hash = hashlib.sha256(request.json["password"].encode()).hexdigest()
     try:
         with db.cursor() as cursor:
             cursor.execute(
-                'Select id from Usuario where uname = %s and password = md5(%s)',
-                (request.json["uname"], request.json["password"])
+                'Select id from Usuario where uname = %s and password = %s',
+                (request.json["uname"], pwd_hash)
             )
             R = cursor.fetchall()
     except Exception as e:
@@ -95,9 +89,6 @@ def Login():
         return {"R": -3}
 
     T = getToken()
-    with open("/tmp/log", "a") as log:
-        log.write(f'Delete from AccesoToken where id_Usuario = "{R[0][0]}"\n')
-        log.write(f'insert into AccesoToken values({R[0][0]},"{T}",now())\n')
 
     try:
         with db.cursor() as cursor:
