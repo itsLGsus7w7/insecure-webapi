@@ -20,7 +20,7 @@ def loadDatabaseSettings(pathjs):
 
 
 def getToken():
-	return os.urandom(32).hex()
+    return os.urandom(32).hex()
 
 
 @post('/Registro')
@@ -137,6 +137,10 @@ def Imagen():
         db.close()
         return {"R": -2}
 
+    if not R:
+        db.close()
+    return {"R":-3}
+
     id_Usuario = R[0][0]
     with open(f'tmp/{id_Usuario}', "wb") as imagen:
         imagen.write(base64.b64decode(request.json['data'].encode()))
@@ -189,6 +193,10 @@ def Descargar():
         db.close()
         return {"R": -2}
 
+    if not R:
+        db.close()
+        return {"R":-4}
+
     try:
         with db.cursor() as cursor:
             cursor.execute('Select name,ruta from Imagen where id = %s', (idImagen,))
@@ -198,8 +206,12 @@ def Descargar():
         db.close()
         return {"R": -3}
 
-    print(Path("img").resolve(), R[0][1])
-    return static_file(R[0][1], Path(".").resolve())
+    if not R:
+        db.close()
+        return {"R":-5}
+
+    nombre_seguro = os.path.basename(R[0][1])
+    return static_file(nombre_seguro, root=str(Path("img").resolve()))
 
 
 if __name__ == '__main__':
