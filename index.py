@@ -118,6 +118,10 @@ def Imagen():
     if not R:
         return {"R": -1}
 
+    ext = str(request.json['ext']).lower().lstrip('.')
+    if ext not in {'jpg','jpeg','png','gif'}:
+        return {"R": -4}
+
     dbcnf = loadDatabaseSettings('db.json')
     db = mysql.connector.connect(
         host='localhost', port=dbcnf['port'],
@@ -139,7 +143,7 @@ def Imagen():
 
     if not R:
         db.close()
-    return {"R":-3}
+        return {"R":-3}
 
     id_Usuario = R[0][0]
     with open(f'tmp/{id_Usuario}', "wb") as imagen:
@@ -153,10 +157,10 @@ def Imagen():
             idImagen = R[0][0]
             cursor.execute(
                 'update Imagen set ruta = %s where id = %s',
-                (f"img/{idImagen}.{request.json['ext']}", idImagen)
+                (f"img/{idImagen}.{ext}", idImagen)
             )
             db.commit()
-            shutil.move('tmp/' + str(id_Usuario), 'img/' + str(idImagen) + '.' + str(request.json['ext']))
+            shutil.move('tmp/' + str(id_Usuario), f'img/{idImagen}.{ext}')
             return {"R": 0, "D": idImagen}
     except Exception as e:
         print(e)
@@ -215,4 +219,4 @@ def Descargar():
 
 
 if __name__ == '__main__':
-    run(host='localhost', port=8080, debug=False)
+    run(host='0.0.0.0', port=8080, debug=False)
